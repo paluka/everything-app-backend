@@ -6,7 +6,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PostModule } from './post/post.module';
 import { UserModule } from './user/user.module';
-import { PostModule } from './post/post.module';
 
 @Module({
   imports: [
@@ -14,8 +13,9 @@ import { PostModule } from './post/post.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
+      // entities: [__dirname + '/**/*.entity{.ts,.js}'], // Explicitly load entities
       autoLoadEntities: true,
-      synchronize: true, // Use only in development
+      synchronize: false, // Use only in development
     }),
     PostModule,
     UserModule,

@@ -1,19 +1,36 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
-import { Post } from '../post/post.entity'; // Assuming both are in the same directory
+// src/user/user.entity.ts
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Post } from '../post/post.entity';
 
-@Entity()
+@Entity('User')
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  name?: string;
+
+  @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column({ nullable: true })
-  name: string;
+  @Column({ type: 'timestamp', nullable: true })
+  emailVerified?: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  image?: string;
+
+  @CreateDateColumn()
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @OneToMany(() => Post, (post) => post.user)
   posts: Post[];
