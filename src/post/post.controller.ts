@@ -19,6 +19,7 @@ export class PostController {
   async createPost(
     @Body() createPostDto: { content: string; userId: string },
   ): Promise<PostEntity> {
+    console.log('createPostDto', createPostDto);
     const { content, userId } = createPostDto;
     return this.postService.createPost(content, userId);
   }
