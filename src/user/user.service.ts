@@ -12,7 +12,7 @@ import { Post } from '../post/post.entity';
 @Injectable()
 export class UserService {
   //   private redisClient: RedisClient;
-  private ALL_USERS_CACHE_KEY = 'ALL_USERS';
+  public ALL_USERS_CACHE_KEY = 'ALL_USERS';
 
   constructor(
     @InjectRepository(User)
@@ -47,6 +47,15 @@ export class UserService {
 
       // If not cached, fetch from DB
       const users = await this.userRepository.find({ relations: ['posts'] });
+
+      users.forEach((user) => {
+        user.posts.sort((a, b) => {
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        });
+      });
+
       await this.cacheManager.set(
         this.ALL_USERS_CACHE_KEY,
         users,

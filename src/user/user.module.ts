@@ -15,6 +15,6 @@ import { Post } from '../post/post.entity';
   ],
   controllers: [UserController],
   providers: [UserService],
-  exports: [UserService, TypeOrmModule],
+  exports: [UserService],
 })
 export class UserModule {}

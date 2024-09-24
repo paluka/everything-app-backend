@@ -2,26 +2,28 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { createId } from '@paralleldrive/cuid2';
+
 import { User } from '../user/user.entity';
 
 @Entity('Post')
 export class Post {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryColumn('varchar', { length: 25 })
+  id: string = createId();
 
   @Column({ type: 'text' })
   content: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt: Date = new Date();
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt: Date = new Date();
 
   @Column()
   userId: string;

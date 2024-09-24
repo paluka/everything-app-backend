@@ -2,17 +2,19 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { createId } from '@paralleldrive/cuid2';
+
 import { Post } from '../post/post.entity';
 
 @Entity('User')
 export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryColumn('varchar', { length: 25 })
+  id: string = createId();
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   name?: string;
@@ -27,10 +29,10 @@ export class User {
   image?: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt: Date = new Date();
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt: Date = new Date();
 
   @OneToMany(() => Post, (post) => post.user)
   posts: Post[];
