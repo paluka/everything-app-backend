@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -28,6 +29,19 @@ import { UserModule } from './user/user.module';
         ttl: parseInt(process.env.REDIS_TTL), // Time-to-live for cached data (in seconds)
       }),
     }),
+    ClientsModule.register([
+      {
+        name: 'RABBITMQ_SERVICE',
+        transport: Transport.RMQ,
+        options: {
+          urls: [process.env.RABBITMQ_URL],
+          queue: 'messages',
+          queueOptions: {
+            durable: true,
+          },
+        },
+      },
+    ]),
     PostModule,
     UserModule,
   ],
