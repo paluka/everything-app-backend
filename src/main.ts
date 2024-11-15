@@ -14,8 +14,8 @@ async function bootstrap() {
   // app.connectMicroservice<MicroserviceOptions>({
   //   transport: Transport.RMQ,
   //   options: {
-  //     urls: [process.env.RABBITMQ_URL],
-  //     queue: 'message_queue',
+  //     urls: [process.env.RABBITMQ_URL || 'amqp://localhost:5672'],
+  //     queue: process.env.RABBITMQ_MESSAGE_QUEUE,
   //     queueOptions: {
   //       durable: true,
   //     },
@@ -24,8 +24,9 @@ async function bootstrap() {
 
   // await app.startAllMicroservices();
 
-  const port = process.env.PORT || 3010; // Read from environment variable or default to 3000
+  const port = process.env.PORT || 3010; // Read from environment variable or default to 3010
   await app.listen(port);
+
   console.log(`Application is running on: http://localhost:${port}`);
   console.log(`Database URL: ${process.env.DATABASE_URL}`);
 }
