@@ -7,9 +7,10 @@ import {
   Delete,
   Param,
   Body,
+  Query,
 } from '@nestjs/common';
 import { PostService } from './post.service';
-import { Post as PostEntity } from './post.entity'; // Aliased import
+import { PostEntity } from './post.entity';
 
 @Controller('posts')
 export class PostController {
@@ -24,9 +25,28 @@ export class PostController {
     return this.postService.createPost(content, userId);
   }
 
+  // @Get()
+  // async findAll(): Promise<PostEntity[]> {
+  //   return this.postService.findAll();
+  // }
+
   @Get()
-  async findAll(): Promise<PostEntity[]> {
-    return this.postService.findAll();
+  async findAll(
+    @Query('paginated') paginated?: boolean,
+    @Query('limit') limit?: number,
+    @Query('cursor') cursor?: string,
+  ): Promise<{
+    posts: PostEntity[];
+    paginated: boolean;
+    nextCursor?: string | null;
+    hasMore?: boolean;
+  }> {
+    if (paginated) {
+      const parsedLimit = parseInt(limit as any, 10) || 20; // Default to 10 if limit is not provided
+      return this.postService.findAllPagination(parsedLimit, cursor);
+    } else {
+      return { posts: await this.postService.findAll(), paginated };
+    }
   }
 
   @Get(':id')

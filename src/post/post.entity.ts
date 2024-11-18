@@ -9,10 +9,10 @@ import {
 } from 'typeorm';
 import { createId } from '@paralleldrive/cuid2';
 
-import { User } from '../user/user.entity';
+import { UserEntity } from '../user/user.entity';
 
 @Entity('Post')
-export class Post {
+export class PostEntity {
   @PrimaryColumn('varchar', { length: 25 })
   id: string = createId();
 
@@ -28,6 +28,6 @@ export class Post {
   @Column()
   userId: string;
 
-  @ManyToOne(() => User, (user) => user.posts, { onDelete: 'CASCADE' })
-  user: User;
+  @ManyToOne(() => UserEntity, (user) => user.posts, { onDelete: 'CASCADE' })
+  user: UserEntity;
 }

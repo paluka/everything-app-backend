@@ -7,18 +7,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { createId } from '@paralleldrive/cuid2';
 
-import { Post } from './post.entity';
-import { User } from '../user/user.entity';
+import { PostEntity } from './post.entity';
+import { UserEntity } from '../user/user.entity';
 import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class PostService {
   constructor(
     private readonly userService: UserService,
-    @InjectRepository(Post)
-    private postRepository: Repository<Post>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    @InjectRepository(PostEntity)
+    private postRepository: Repository<PostEntity>,
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     // this.redisClient = new RedisClient({ host: 'localhost', port: 6379 });
@@ -29,7 +29,7 @@ export class PostService {
   //     return JSON.parse(cachedData); // Ensure the data is in JSON format
   //   }
 
-  async createPost(content: string, userId: string): Promise<Post> {
+  async createPost(content: string, userId: string): Promise<PostEntity> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
@@ -46,16 +46,52 @@ export class PostService {
     return this.postRepository.save(newPost);
   }
 
-  async findAll(): Promise<Post[]> {
+  async findAll(): Promise<PostEntity[]> {
+    console.log('GETTING ALL POSTS FROM ALL USERS');
     return this.postRepository.find({
-      //   relations: ['user'],
+      relations: ['user'],
       order: {
         createdAt: 'DESC',
       },
     });
   }
 
-  async findOne(id: string): Promise<Post> {
+  async findAllPagination(
+    limit: number,
+    cursor?: string,
+  ): Promise<{
+    posts: PostEntity[];
+    paginated: boolean;
+    nextCursor: string | null;
+    hasMore: boolean;
+  }> {
+    console.log(
+      `GETTING POSTS FROM ALL USERS USING PAGINATION. Limit ${limit}, Cursor: ${cursor}`,
+    );
+    const query = this.postRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.user', 'user')
+      .orderBy('post.createdAt', 'DESC')
+      .take(limit + 1); // Fetch one extra to determine if there's more
+
+    if (cursor) {
+      query.where('post.createdAt < :cursor', { cursor });
+    }
+
+    const posts = await query.getMany();
+
+    const hasMore = posts.length > limit;
+    const nextCursor = hasMore ? posts[limit - 1].createdAt.toString() : null;
+
+    return {
+      posts: posts.slice(0, limit), // Return only the requested number of posts
+      paginated: true,
+      nextCursor,
+      hasMore,
+    };
+  }
+
+  async findOne(id: string): Promise<PostEntity> {
     const post = await this.postRepository.findOne({
       where: { id },
       //   relations: ['user'],
@@ -66,7 +102,10 @@ export class PostService {
     return post;
   }
 
-  async updatePost(id: string, updates: Partial<Post>): Promise<Post> {
+  async updatePost(
+    id: string,
+    updates: Partial<PostEntity>,
+  ): Promise<PostEntity> {
     await this.postRepository.update(id, updates);
     return this.findOne(id);
   }

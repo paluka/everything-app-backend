@@ -6,8 +6,8 @@ import { Cache } from 'cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { User } from './user.entity';
-import { Post } from '../post/post.entity';
+import { UserEntity } from './user.entity';
+import { PostEntity } from '../post/post.entity';
 
 @Injectable()
 export class UserService {
@@ -15,10 +15,10 @@ export class UserService {
   public ALL_USERS_CACHE_KEY = 'ALL_USERS';
 
   constructor(
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(Post)
-    private postRepository: Repository<Post>,
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
+    @InjectRepository(PostEntity)
+    private postRepository: Repository<PostEntity>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     // this.redisClient = new RedisClient({ host: 'localhost', port: 6379 });
@@ -29,12 +29,16 @@ export class UserService {
   //     return JSON.parse(cachedData); // Ensure the data is in JSON format
   //   }
 
-  async createUser(name: string, email: string, image?: string): Promise<User> {
+  async createUser(
+    name: string,
+    email: string,
+    image?: string,
+  ): Promise<UserEntity> {
     const newUser = this.userRepository.create({ name, email, image });
     return this.userRepository.save(newUser);
   }
 
-  async findAll(): Promise<User[]> {
+  async findAll(): Promise<UserEntity[]> {
     console.log('FINDING ALL USERS');
 
     try {
@@ -42,7 +46,7 @@ export class UserService {
 
       if (cachedUsers) {
         console.log('RETURNING CACHED FINDING ALL USERS');
-        return cachedUsers as User[]; // Return cached posts if available
+        return cachedUsers as UserEntity[]; // Return cached posts if available
       }
 
       // If not cached, fetch from DB
@@ -78,7 +82,7 @@ export class UserService {
     // return users;
   }
 
-  async findOne(id: string): Promise<User> {
+  async findOne(id: string): Promise<UserEntity> {
     console.log('FINDING ONE USER', id);
     const user = await this.userRepository.findOne({
       where: { id },
@@ -87,10 +91,14 @@ export class UserService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
+    console.log('FOUND USER:', user);
     return user;
   }
 
-  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+  async updateUser(
+    id: string,
+    updates: Partial<UserEntity>,
+  ): Promise<UserEntity> {
     await this.userRepository.update(id, updates);
     await this.cacheManager.del(this.ALL_USERS_CACHE_KEY);
     return this.findOne(id);

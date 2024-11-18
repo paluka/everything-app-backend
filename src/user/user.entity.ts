@@ -9,10 +9,10 @@ import {
 } from 'typeorm';
 import { createId } from '@paralleldrive/cuid2';
 
-import { Post } from '../post/post.entity';
+import { PostEntity } from '../post/post.entity';
 
 @Entity('User')
-export class User {
+export class UserEntity {
   @PrimaryColumn('varchar', { length: 25 })
   id: string = createId();
 
@@ -34,6 +34,6 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date = new Date();
 
-  @OneToMany(() => Post, (post) => post.user)
-  posts: Post[];
+  @OneToMany(() => PostEntity, (post) => post.user)
+  posts: PostEntity[];
 }

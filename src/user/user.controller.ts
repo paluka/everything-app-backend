@@ -9,7 +9,7 @@ import {
   Body,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { User } from './user.entity';
+import { UserEntity } from './user.entity';
 
 @Controller('users')
 export class UserController {
@@ -18,18 +18,20 @@ export class UserController {
   @Post()
   async createUser(
     @Body() createUserDto: { name: string; email: string; image?: string },
-  ): Promise<User> {
+  ): Promise<UserEntity> {
     const { name, email, image } = createUserDto;
     return this.userService.createUser(name, email, image);
   }
 
   @Get()
-  async findAll(): Promise<User[]> {
+  async findAll(): Promise<UserEntity[]> {
+    console.log('Finding all users');
     return this.userService.findAll();
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<User> {
+  async findOne(@Param('id') id: string): Promise<UserEntity> {
+    console.log('Finding one user:', id);
     return this.userService.findOne(id);
   }
 
@@ -37,7 +39,7 @@ export class UserController {
   async updateUser(
     @Param('id') id: string,
     @Body() updateUserDto: { name?: string; email?: string; image?: string },
-  ): Promise<User> {
+  ): Promise<UserEntity> {
     return this.userService.updateUser(id, updateUserDto);
   }
 

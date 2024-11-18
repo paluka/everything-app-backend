@@ -2,8 +2,8 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { User } from '../user/user.entity';
-import { Post } from './post.entity';
+import { UserEntity } from '../user/user.entity';
+import { PostEntity } from './post.entity';
 import { PostService } from './post.service';
 import { PostController } from './post.controller';
 import { UserModule } from '../user/user.module';
@@ -11,7 +11,7 @@ import { AppModule } from '../app.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Post, User]),
+    TypeOrmModule.forFeature([PostEntity, UserEntity]),
     UserModule,
     forwardRef(() => AppModule),
   ],
