@@ -7,6 +7,9 @@ import {
   WebSocketGateway,
 } from '@nestjs/webSockets';
 import { Socket } from 'socket.io';
+import { MessageEntity } from './message.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 class WebSocketPayload {
   sender: string;
@@ -25,6 +28,8 @@ export class MessageService
   private webSocketClientsMap: Map<string, Socket> = new Map(); // Map to store webSocket client connections by user ID
 
   constructor(
+    @InjectRepository(MessageEntity)
+    private readonly messageRepository: Repository<MessageEntity>,
     @Inject(RABBITMQ_SERVICE)
     private rabbitmqClient: ClientProxy,
   ) {}
@@ -86,7 +91,7 @@ export class MessageService
   // }
 
   @MessagePattern(process.env.RABBITMQ_MESSAGE_QUEUE)
-  async handleMessage(@Payload() payload: WebSocketPayload) {
+  async handleMessageInRabbitMQ(@Payload() payload: WebSocketPayload) {
     console.log(
       `Received message in RabbitMQ queue named "${process.env.RABBITMQ_MESSAGE_QUEUE}":`,
       payload,
@@ -104,5 +109,16 @@ export class MessageService
         `User with id ${payload.receiver} not connected to WebSockets`,
       );
     }
+  }
+
+  async create(messageData: Partial<MessageEntity>): Promise<MessageEntity> {
+    const message = this.messageRepository.create(messageData);
+    return this.messageRepository.save(message);
+  }
+
+  async findByConversation(conversationId: string): Promise<MessageEntity[]> {
+    return this.messageRepository.find({
+      where: { conversation: { id: conversationId } },
+    });
   }
 }

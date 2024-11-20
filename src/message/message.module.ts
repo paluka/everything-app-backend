@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
-import { MessageController } from './message.controller';
-import { MessageService } from './message.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule } from '@nestjs/config';
+
+import { MessageController } from './message.controller';
+import { MessageService } from './message.service';
+import { MessageEntity } from './message.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
   imports: [
@@ -24,8 +27,10 @@ import { ConfigModule } from '@nestjs/config';
         },
       },
     ]),
+    TypeOrmModule.forFeature([MessageEntity]),
   ],
   controllers: [MessageController],
   providers: [MessageService],
+  //exports: [MessageService], // Export if other modules need access
 })
 export class MessageModule {}

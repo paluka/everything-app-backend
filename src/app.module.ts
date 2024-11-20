@@ -9,6 +9,8 @@ import { AppService } from './app.service';
 import { PostModule } from './post/post.module';
 import { UserModule } from './user/user.module';
 import { MessageModule } from './message/message.module';
+import { ConversationModule } from './conversation/conversation.module';
+import { ParticipantModule } from './participant/participant.module';
 
 @Module({
   imports: [
@@ -22,7 +24,7 @@ import { MessageModule } from './message/message.module';
       url: process.env.DATABASE_URL,
       // entities: [__dirname + '/**/*.entity{.ts,.js}'], // Explicitly load entities
       autoLoadEntities: true,
-      synchronize: false, // Use only in development
+      synchronize: false, // Set to 'true' only in development
     }),
 
     CacheModule.register({
@@ -39,6 +41,8 @@ import { MessageModule } from './message/message.module';
     PostModule,
     UserModule,
     MessageModule,
+    ConversationModule,
+    ParticipantModule,
   ],
   controllers: [AppController],
   providers: [AppService],

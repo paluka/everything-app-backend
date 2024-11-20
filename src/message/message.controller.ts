@@ -1,21 +1,22 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param } from '@nestjs/common';
 import { MessageService } from './message.service';
+import { MessageEntity } from './message.entity';
 
-// class SendMessageDto {
-//   content: string;
-//   sender: string;
-// }
-
-@Controller('sendMessage')
+@Controller('messages')
 export class MessageController {
-  constructor(private readonly messagesService: MessageService) {}
+  constructor(private readonly messageService: MessageService) {}
 
-  // @Post()
-  // async sendMessage(@Body() sendMessageDto: SendMessageDto) {
-  //   await this.messagesService.sendMessage(
-  //     sendMessageDto.content,
-  //     sendMessageDto.sender,
-  //   );
-  //   return { status: 'Message sent to queue' };
-  // }
+  @Post()
+  async create(
+    @Body() messageData: Partial<MessageEntity>,
+  ): Promise<MessageEntity> {
+    return this.messageService.create(messageData);
+  }
+
+  @Get(':conversationId')
+  async findByConversation(
+    @Param('conversationId') conversationId: string,
+  ): Promise<MessageEntity[]> {
+    return this.messageService.findByConversation(conversationId);
+  }
 }
