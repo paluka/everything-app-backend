@@ -9,7 +9,7 @@ import { ConversationEntity } from '../conversation/conversation.entity';
 import { UserEntity } from '../user/user.entity';
 import { createId } from '@paralleldrive/cuid2';
 
-@Entity('Participants')
+@Entity('Participant')
 export class ParticipantEntity {
   @PrimaryColumn('varchar', { length: 25 })
   id: string = createId();
