@@ -1,4 +1,5 @@
 import {
+  Column,
   CreateDateColumn,
   Entity,
   ManyToOne,
@@ -28,4 +29,7 @@ export class ParticipantEntity {
 
   @ManyToOne(() => UserEntity, (user) => user.participants)
   user: UserEntity;
+
+  @Column()
+  userId: string;
 }

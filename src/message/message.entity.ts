@@ -24,8 +24,14 @@ export class MessageEntity {
   @ManyToOne(() => ConversationEntity, (conversation) => conversation.messages)
   conversation: ConversationEntity;
 
+  @Column()
+  conversationId: string;
+
   @ManyToOne(() => UserEntity, (user) => user.messages)
   sender: UserEntity;
+
+  @Column()
+  senderId: string;
 
   @Column()
   content: string;

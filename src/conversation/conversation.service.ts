@@ -79,22 +79,22 @@ export class ConversationService {
     //   },
     // });
 
-    const conversations = await this.conversationRepository
-      .createQueryBuilder('conversation')
-      .leftJoinAndSelect('conversation.participants', 'participants')
-      .leftJoinAndSelect('participants.user', 'user')
-      .where((qb) => {
-        const subQuery = qb
-          .subQuery()
-          .select('conversation2.id')
-          .from(ConversationEntity, 'conversation2')
-          .leftJoin('conversation2.participants', 'participants2')
-          .where('participants2.user.id = :userId')
-          .getQuery();
-        return 'conversation.id IN ' + subQuery;
-      })
-      .setParameter('userId', userId)
-      .getMany();
+    // const conversations = await this.conversationRepository
+    //   .createQueryBuilder('conversation')
+    //   .leftJoinAndSelect('conversation.participants', 'participants')
+    //   .leftJoinAndSelect('participants.user', 'user')
+    //   .where((qb) => {
+    //     const subQuery = qb
+    //       .subQuery()
+    //       .select('conversation2.id')
+    //       .from(ConversationEntity, 'conversation2')
+    //       .leftJoin('conversation2.participants', 'participants2')
+    //       .where('participants2.user.id = :userId')
+    //       .getQuery();
+    //     return 'conversation.id IN ' + subQuery;
+    //   })
+    //   .setParameter('userId', userId)
+    //   .getMany();
 
     // return this.conversationRepository
     //   .createQueryBuilder('conversation')
@@ -110,6 +110,27 @@ export class ConversationService {
     //     { userId }
     //   )
     //   .getMany();
+
+    const conversations = this.conversationRepository
+      .createQueryBuilder('conversation')
+      .leftJoinAndSelect('conversation.participants', 'participants')
+      .leftJoinAndSelect('participants.user', 'user')
+      .leftJoinAndSelect('conversation.messages', 'messages') // Add messages relation
+      .leftJoinAndSelect('messages.sender', 'sender') // Optionally include message sender
+      .where((qb) => {
+        const subQuery = qb
+          .subQuery()
+          .select('conversation2.id')
+          .from(ConversationEntity, 'conversation2')
+          .leftJoin('conversation2.participants', 'participants2')
+          .where('participants2.user.id = :userId')
+          .getQuery();
+        return 'conversation.id IN ' + subQuery;
+      })
+      .setParameter('userId', userId)
+      .orderBy('messages.createdAt', 'ASC') // Optional: order messages by date
+      .getMany();
+
     console.log(JSON.stringify(conversations, null, 2)); // Debug log
     return conversations;
   }
