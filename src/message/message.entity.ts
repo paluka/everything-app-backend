@@ -10,6 +10,13 @@ import { ConversationEntity } from '../conversation/conversation.entity';
 import { UserEntity } from '../user/user.entity';
 import { createId } from '@paralleldrive/cuid2';
 
+export enum MessageStatus {
+  SENT = 'sent',
+  DELIVERED = 'delivered',
+  READ = 'read',
+  FAILED = 'failed',
+}
+
 @Entity('Message')
 export class MessageEntity {
   @PrimaryColumn('varchar', { length: 25 })
@@ -35,4 +42,11 @@ export class MessageEntity {
 
   @Column()
   content: string;
+
+  @Column({
+    type: 'enum',
+    enum: MessageStatus,
+    default: MessageStatus.SENT,
+  })
+  status: MessageStatus;
 }

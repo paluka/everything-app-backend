@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 
-import { MessageEntity } from './message.entity';
+import { MessageEntity, MessageStatus } from './message.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -63,5 +63,21 @@ export class MessageService {
     return this.messageRepository.find({
       where: { conversation: { id: conversationId } },
     });
+  }
+
+  async updateMessageStatus(
+    id: string,
+    status: MessageStatus,
+  ): Promise<MessageEntity> {
+    const message = await this.messageRepository.findOne({
+      where: { id },
+    });
+
+    if (!message) {
+      throw new Error('Message not found');
+    }
+
+    message.status = status;
+    return this.messageRepository.save(message);
   }
 }

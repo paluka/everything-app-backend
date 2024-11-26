@@ -167,14 +167,16 @@ export class MessageGateway
           }
         }
       });
-
-      // Optionally send acknowledgment back to the sender
       client.emit('messageSent', { success: true, message });
-    } catch (error) {
-      client.emit('messageSent', { success: false, error });
+    } catch (error: unknown) {
+      client.emit('messageSent', {
+        success: false,
+        message: messageData,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       console.error(
         'Error in sending WebSocket message:',
-        JSON.stringify(error),
+        error instanceof Error ? error.message : 'Unknown error',
       );
     }
   }
