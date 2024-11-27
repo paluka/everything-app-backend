@@ -7,7 +7,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ParticipantService } from 'src/participant/participant.service';
-import { MessageEntity } from './message.entity';
+import { MessageEntity, MessageStatus } from './message.entity';
 import { MessageService } from './message.service';
 import { ParticipantEntity } from 'src/participant/participant.entity';
 
@@ -121,6 +121,8 @@ export class MessageGateway
   @SubscribeMessage('sendMessage')
   async handleSendMessage(client: Socket, messageData: Partial<MessageEntity>) {
     try {
+      // throw new Error('Fake error');
+
       console.log(
         `Message received: ${messageData.content} from ${messageData.senderId}.
         ${JSON.stringify(messageData)}`,
@@ -128,6 +130,11 @@ export class MessageGateway
 
       // Save the message to the database
       const message = await this.messageService.create(messageData);
+
+      client.emit('messageStatusUpdate', {
+        status: MessageStatus.SENT,
+        message,
+      });
 
       // Notify participants about the new message
       const participants = await this.participantService.findByConversation(
@@ -167,13 +174,26 @@ export class MessageGateway
           }
         }
       });
-      client.emit('messageSent', { success: true, message });
+
+      await this.messageService.updateMessageStatus(
+        message.id,
+        MessageStatus.DELIVERED,
+      );
+
+      // Pause for 2 seconds for effect
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      client.emit('messageStatusUpdate', {
+        status: MessageStatus.DELIVERED,
+        message,
+      });
     } catch (error: unknown) {
-      client.emit('messageSent', {
-        success: false,
+      client.emit('messageStatusUpdate', {
+        status: MessageStatus.FAILED,
         message: messageData,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
+
       console.error(
         'Error in sending WebSocket message:',
         error instanceof Error ? error.message : 'Unknown error',
