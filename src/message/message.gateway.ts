@@ -10,6 +10,7 @@ import { ParticipantService } from 'src/participant/participant.service';
 import { MessageEntity, MessageStatus } from './message.entity';
 import { MessageService } from './message.service';
 import { ParticipantEntity } from 'src/participant/participant.entity';
+import { ConversationEntity } from 'src/conversation/conversation.entity';
 
 @WebSocketGateway({ cors: true }) // Enable CORS if needed
 export class MessageGateway
@@ -160,6 +161,8 @@ export class MessageGateway
       //     }
       //   });
 
+      let hasDeliveredMessage = false;
+
       participants.forEach((participant: ParticipantEntity) => {
         if (participant.userId !== messageData.senderId) {
           const clientIds = this.webSocketClientsMap.get(participant.userId);
@@ -171,22 +174,26 @@ export class MessageGateway
 
               this.server.to(clientId).emit('receiveMessage', message);
             });
+
+            hasDeliveredMessage = true;
           }
         }
       });
 
-      await this.messageService.updateMessageStatus(
-        message.id,
-        MessageStatus.DELIVERED,
-      );
+      if (hasDeliveredMessage) {
+        await this.messageService.updateMessageStatus(
+          message.id,
+          MessageStatus.DELIVERED,
+        );
 
-      // Pause for 2 seconds for effect
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Pause for 2 seconds for effect
+        // await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      client.emit('messageStatusUpdate', {
-        status: MessageStatus.DELIVERED,
-        message,
-      });
+        client.emit('messageStatusUpdate', {
+          status: MessageStatus.DELIVERED,
+          message,
+        });
+      }
     } catch (error: unknown) {
       client.emit('messageStatusUpdate', {
         status: MessageStatus.FAILED,
@@ -196,6 +203,51 @@ export class MessageGateway
 
       console.error(
         'Error in sending WebSocket message:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    }
+  }
+
+  @SubscribeMessage('statusUpdate')
+  async handleStatusUpdate(
+    client: Socket,
+    messageDataObj: {
+      conversation: Partial<ConversationEntity>;
+      message: Partial<MessageEntity>;
+      newStatus: MessageStatus;
+    },
+  ) {
+    try {
+      console.log(
+        `Message status update received: ${messageDataObj.message.content} from ${messageDataObj.message.senderId}.
+        ${JSON.stringify(messageDataObj)}`,
+      );
+
+      await this.messageService.updateMessageStatus(
+        messageDataObj.message.id,
+        messageDataObj.newStatus,
+      );
+
+      messageDataObj.conversation.participants.forEach(
+        (participant: ParticipantEntity) => {
+          if (participant.userId === messageDataObj.message.senderId) {
+            const clientIds = this.webSocketClientsMap.get(participant.userId);
+
+            if (clientIds) {
+              // Emit to all clients of the participant
+              clientIds.forEach((clientId) => {
+                this.server.to(clientId).emit('messageStatusUpdate', {
+                  status: MessageStatus.READ,
+                  message: messageDataObj.message,
+                });
+              });
+            }
+          }
+        },
+      );
+    } catch (error: unknown) {
+      console.error(
+        'Error saving message status update:',
         error instanceof Error ? error.message : 'Unknown error',
       );
     }
