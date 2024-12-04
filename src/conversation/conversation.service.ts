@@ -45,18 +45,22 @@ export class ConversationService {
     await this.participantRepository.save(participants);
 
     // Step 4: Add the first message to the conversation
-    const message = this.messageRepository.create({
-      content: createConversationDto.messages[0].content,
-      sender: { id: createConversationDto.messages[0].senderId },
-      conversation: { id: conversation.id },
-    });
-    await this.messageRepository.save(message);
+    let message = null;
+
+    if (createConversationDto.messages.length) {
+      message = this.messageRepository.create({
+        content: createConversationDto.messages[0].content,
+        sender: { id: createConversationDto.messages[0].senderId },
+        conversation: { id: conversation.id },
+      });
+      await this.messageRepository.save(message);
+    }
 
     // Step 5: Return the created conversation (you can include participants and messages if needed)
     return {
       ...conversation,
       participants,
-      messages: [message],
+      messages: message ? [message] : [],
     };
   }
 
