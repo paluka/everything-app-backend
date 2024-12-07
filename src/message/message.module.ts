@@ -9,6 +9,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MessageGateway } from './message.gateway';
 import { ParticipantService } from 'src/participant/participant.service';
 import { ParticipantEntity } from 'src/participant/participant.entity';
+import {
+  RABBITMQ_MESSAGE_QUEUE,
+  RABBITMQ_SERVICE,
+  RABBITMQ_URL,
+} from 'src/contants';
 
 @Module({
   imports: [
@@ -19,11 +24,11 @@ import { ParticipantEntity } from 'src/participant/participant.entity';
     ClientsModule.register([
       // RabbitMQ message broker
       {
-        name: process.env.RABBITMQ_MESSAGE_SERVICE,
+        name: RABBITMQ_SERVICE,
         transport: Transport.RMQ,
         options: {
-          urls: [process.env.RABBITMQ_URL || 'amqp://localhost:5672'],
-          queue: process.env.RABBITMQ_MESSAGE_QUEUE,
+          urls: [process.env.RABBITMQ_URL || RABBITMQ_URL],
+          queue: process.env.RABBITMQ_MESSAGE_QUEUE || RABBITMQ_MESSAGE_QUEUE,
           queueOptions: {
             durable: true,
           },
@@ -33,7 +38,7 @@ import { ParticipantEntity } from 'src/participant/participant.entity';
     TypeOrmModule.forFeature([MessageEntity, ParticipantEntity]),
   ],
   controllers: [MessageController],
-  providers: [MessageService, MessageGateway, ParticipantService],
-  //exports: [MessageService], // Export if other modules need access
+  providers: [MessageGateway, MessageService, ParticipantService],
+  exports: [MessageService], // Export if other modules need access
 })
 export class MessageModule {}

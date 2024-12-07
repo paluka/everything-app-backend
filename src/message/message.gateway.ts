@@ -11,8 +11,12 @@ import { MessageEntity, MessageStatus } from './message.entity';
 import { MessageService } from './message.service';
 import { ParticipantEntity } from 'src/participant/participant.entity';
 import { ConversationEntity } from 'src/conversation/conversation.entity';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { RABBITMQ_MESSAGE_QUEUE, RABBITMQ_SERVICE } from 'src/contants';
 
-@WebSocketGateway({ cors: true }) // Enable CORS if needed
+@Injectable()
+@WebSocketGateway({ cors: true })
 export class MessageGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
@@ -22,12 +26,17 @@ export class MessageGateway
   private webSocketClientsMap = new Map<string, Set<string>>();
 
   constructor(
+    @Inject(RABBITMQ_SERVICE)
+    private rabbitmqClient: ClientProxy,
+    @Inject(ParticipantService)
     private readonly participantService: ParticipantService,
+    @Inject(forwardRef(() => MessageService))
     private readonly messageService: MessageService,
-
-    // @InjectRepository(ParticipantEntity)
-    // private readonly participantRepository: Repository<ParticipantEntity>,
   ) {}
+
+  getWebSocketClientsMap() {
+    return this.webSocketClientsMap;
+  }
 
   handleConnection(client: Socket) {
     const userIdQueryParam = client.handshake.query.userId;
@@ -68,59 +77,50 @@ export class MessageGateway
     console.log('WebSocket connection removed for user', userId);
   }
 
-  //private webSocketClientsMap: Map<string, Socket> = new Map(); // Map to store webSocket client connections by user ID
+  async sendMessageToRabbitMQ(messageData: Partial<MessageEntity>) {
+    try {
+      console.log(
+        `Sending message to RabbitMQ queue '${RABBITMQ_MESSAGE_QUEUE}':`,
+        messageData,
+      );
 
-  // Track connections
-  //   handleConnection(webSocketClient: Socket) {
-  //     const userId = webSocketClient.handshake.query.userId as string; // Assume userId is passed as query param
-
-  //     if (userId) {
-  //       this.webSocketClientsMap.set(userId, webSocketClient); // Store the socket associated with the userId
-  //       console.log(`User connected through webSockets: ${userId}`);
-  //     }
-  //   }
-
-  //   // Track disconnections
-  //   handleDisconnect(webSocketClient: Socket) {
-  //     // Find userId based on socket id and remove from map
-  //     this.webSocketClientsMap.forEach((socket, userId) => {
-  //       if (socket.id === webSocketClient.id) {
-  //         this.webSocketClientsMap.delete(userId);
-  //         console.log(`User disconnected: ${userId}`);
-  //       }
-  //     });
-  //   }
-
-  //   // Handle incoming WebSocket messages
-  //   @SubscribeMessage('message')
-  //   async handleIncomingWebSocketMessage(
-  //     client: Socket,
-  //     payload: WebSocketPayload,
-  //   ) {
-  //     console.log(
-  //       `Received webSocket message from user ${payload.sender} to user ${payload.receiver}: ${payload.content}`,
-  //     );
-
-  //     // Add message to RabbitMQ queue
-  //     // await this.rabbitmqClient.emit(process.env.RABBITMQ_MESSAGE_QUEUE, payload);
-  //     console.log('Message added to RabbitMQ queue');
-
-  //     // Optionally, send a response back to the client
-  //     client.emit('message', { status: 'Message added to queue' });
-  //   }
-
-  // Triggered when a client connects
-  //   handleConnection(client: Socket) {
-  //     console.log(`Client connected: ${client.id}`);
-  //   }
-
-  //   // Triggered when a client disconnects
-  //   handleDisconnect(client: Socket) {
-  //     console.log(`Client disconnected: ${client.id}`);
-  //   }
+      await new Promise((resolve, reject) => {
+        this.rabbitmqClient
+          .emit(RABBITMQ_MESSAGE_QUEUE, messageData)
+          .subscribe({
+            next: () => resolve(true),
+            error: (err) => reject(err),
+          });
+      });
+    } catch (error: unknown) {
+      console.error(
+        'Error sending message to RabbitMQ:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    }
+  }
 
   @SubscribeMessage('sendMessage')
   async handleSendMessage(client: Socket, messageData: Partial<MessageEntity>) {
+    try {
+      await this.sendMessageToRabbitMQ(messageData);
+    } catch (error: unknown) {
+      client.emit('messageStatusUpdate', {
+        status: MessageStatus.FAILED,
+        message: messageData,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      console.error(
+        'Error in sending WebSocket message:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    }
+  }
+
+  async handleMessageFromRabbitMQ(messageData: Partial<MessageEntity>) {
+    const clientIds = this.webSocketClientsMap.get(messageData.senderId);
+
     try {
       // throw new Error('Fake error');
 
@@ -132,9 +132,16 @@ export class MessageGateway
       // Save the message to the database
       const message = await this.messageService.create(messageData);
 
-      client.emit('messageStatusUpdate', {
-        status: MessageStatus.SENT,
-        message,
+      // client.emit('messageStatusUpdate', {
+      //   status: MessageStatus.SENT,
+      //   message,
+      // });
+
+      clientIds.forEach((clientId) => {
+        this.server.to(clientId).emit('messageStatusUpdate', {
+          status: MessageStatus.SENT,
+          message,
+        });
       });
 
       // Notify participants about the new message
@@ -146,20 +153,6 @@ export class MessageGateway
         'Participants in this conversation',
         JSON.stringify(participants),
       );
-
-      //   participants.forEach((participant: ParticipantEntity) => {
-      //     if (participant.userId !== messageData.senderId) {
-      //       this.server.to(participant.userId).emit('newMessageNotification', {
-      //         conversationId: message.conversation.id,
-      //         message,
-      //       });
-
-      //       this.server.to(participant.userId).emit('receiveMessage', {
-      //         conversationId: message.conversation.id,
-      //         message,
-      //       });
-      //     }
-      //   });
 
       let hasDeliveredMessage = false;
 
@@ -189,16 +182,31 @@ export class MessageGateway
         // Pause for 2 seconds for effect
         // await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        client.emit('messageStatusUpdate', {
-          status: MessageStatus.DELIVERED,
-          message,
+        // client.emit('messageStatusUpdate', {
+        //   status: MessageStatus.DELIVERED,
+        //   message,
+        // });
+
+        clientIds.forEach((clientId) => {
+          this.server.to(clientId).emit('messageStatusUpdate', {
+            status: MessageStatus.DELIVERED,
+            message,
+          });
         });
       }
     } catch (error: unknown) {
-      client.emit('messageStatusUpdate', {
-        status: MessageStatus.FAILED,
-        message: messageData,
-        error: error instanceof Error ? error.message : 'Unknown error',
+      // client.emit('messageStatusUpdate', {
+      //   status: MessageStatus.FAILED,
+      //   message: messageData,
+      //   error: error instanceof Error ? error.message : 'Unknown error',
+      // });
+
+      clientIds.forEach((clientId) => {
+        this.server.to(clientId).emit('messageStatusUpdate', {
+          status: MessageStatus.FAILED,
+          message: messageData,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       });
 
       console.error(
@@ -252,20 +260,6 @@ export class MessageGateway
       );
     }
   }
-
-  // Handle incoming messages from clients
-  //   @SubscribeMessage('sendMessage')
-  //   handleMessage(
-  //     client: Socket,
-  //     payload: { conversationId: string; message: string; senderId: string },
-  //   ) {
-  //     console.log(
-  //       `Message received: ${payload.message} from ${payload.senderId}`,
-  //     );
-
-  //     // Emit the message to all clients in the same conversation room
-  //     this.server.to(payload.conversationId).emit('receiveMessage', payload);
-  //   }
 
   // Join a conversation room
   //   @SubscribeMessage('joinRoom')
