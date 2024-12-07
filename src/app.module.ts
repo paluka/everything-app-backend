@@ -11,6 +11,7 @@ import { UserModule } from './user/user.module';
 import { MessageModule } from './message/message.module';
 import { ConversationModule } from './conversation/conversation.module';
 import { ParticipantModule } from './participant/participant.module';
+import { FollowModule } from './follow/follow.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ParticipantModule } from './participant/participant.module';
     MessageModule,
     ConversationModule,
     ParticipantModule,
+    FollowModule,
   ],
   controllers: [AppController],
   providers: [AppService],

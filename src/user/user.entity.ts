@@ -12,6 +12,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { PostEntity } from '../post/post.entity';
 import { MessageEntity } from 'src/message/message.entity';
 import { ParticipantEntity } from 'src/participant/participant.entity';
+import { FollowEntity } from '../follow/follow.entity';
 
 @Entity('User')
 export class UserEntity {
@@ -44,4 +45,12 @@ export class UserEntity {
 
   @OneToMany(() => MessageEntity, (message) => message.sender)
   messages: MessageEntity[];
+
+  // Followers (users following this user)
+  @OneToMany(() => FollowEntity, (follow) => follow.following)
+  followers: FollowEntity[];
+
+  // Following (users this user is following)
+  @OneToMany(() => FollowEntity, (follow) => follow.follower)
+  following: FollowEntity[];
 }

@@ -50,7 +50,9 @@ export class UserService {
       }
 
       // If not cached, fetch from DB
-      const users = await this.userRepository.find({ relations: ['posts'] });
+      const users = await this.userRepository.find({
+        relations: ['posts', 'followers', 'following'],
+      });
 
       users.forEach((user) => {
         user.posts.sort((a, b) => {
@@ -86,7 +88,7 @@ export class UserService {
     console.log('FINDING ONE USER', id);
     const user = await this.userRepository.findOne({
       where: { id },
-      relations: ['posts'],
+      relations: ['posts', 'followers', 'following'],
     });
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
