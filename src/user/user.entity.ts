@@ -59,4 +59,10 @@ export class UserEntity {
 
   @Column({ type: 'int', default: 0 })
   followingCount: number;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  publicKey?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  encryptedPrivateKey?: string;
 }

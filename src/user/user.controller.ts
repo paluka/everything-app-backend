@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserEntity } from './user.entity';
+import logger from 'src/utils/logger';
 
 @Controller('users')
 export class UserController {
@@ -25,21 +26,29 @@ export class UserController {
 
   @Get()
   async findAll(): Promise<UserEntity[]> {
-    console.log('Finding all users');
+    logger.log('Finding all users');
     return this.userService.findAll();
   }
 
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<UserEntity> {
-    console.log('Finding one user:', id);
+    logger.log('Finding one user:', id);
     return this.userService.findOne(id);
   }
 
   @Put(':id')
   async updateUser(
     @Param('id') id: string,
-    @Body() updateUserDto: { name?: string; email?: string; image?: string },
+    @Body()
+    updateUserDto: {
+      name?: string;
+      email?: string;
+      image?: string;
+      publicKey?: string;
+      encryptedPrivateKey?: string;
+    },
   ): Promise<UserEntity> {
+    logger.log(`Updating user ${id} with:`, updateUserDto);
     return this.userService.updateUser(id, updateUserDto);
   }
 

@@ -35,8 +35,14 @@ export class UserService {
     email: string,
     image?: string,
   ): Promise<UserEntity> {
-    const newUser = this.userRepository.create({ name, email, image });
-    return this.userRepository.save(newUser);
+    try {
+      const newUser = this.userRepository.create({ name, email, image });
+      const result = this.userRepository.save(newUser);
+      await this.cacheManager.del(this.ALL_USERS_CACHE_KEY);
+      return result;
+    } catch (error: unknown) {
+      logger.error('Error creating new user', error);
+    }
   }
 
   async findAll(): Promise<UserEntity[]> {
@@ -114,9 +120,13 @@ export class UserService {
     id: string,
     updates: Partial<UserEntity>,
   ): Promise<UserEntity> {
-    await this.userRepository.update(id, updates);
-    await this.cacheManager.del(this.ALL_USERS_CACHE_KEY);
-    return this.findOne(id);
+    try {
+      await this.userRepository.update(id, updates);
+      await this.cacheManager.del(this.ALL_USERS_CACHE_KEY);
+      return this.findOne(id);
+    } catch (error: unknown) {
+      logger.error(`Error updating user ${id}`, error);
+    }
   }
 
   async deleteUser(id: string): Promise<void> {
