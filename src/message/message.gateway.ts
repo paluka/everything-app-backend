@@ -14,6 +14,7 @@ import { ConversationEntity } from 'src/conversation/conversation.entity';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { RABBITMQ_MESSAGE_QUEUE, RABBITMQ_SERVICE } from 'src/contants';
+import logger from 'src/utils/logger';
 
 @Injectable()
 @WebSocketGateway({ cors: true })
@@ -45,7 +46,7 @@ export class MessageGateway
       : userIdQueryParam;
 
     if (!userId) {
-      console.error('No userId found in handshake query');
+      logger.error('No userId found in handshake query');
       return;
     }
 
@@ -54,7 +55,7 @@ export class MessageGateway
     }
     this.webSocketClientsMap.get(userId).add(client.id);
 
-    console.log('WebSocket connection established with user', userId);
+    logger.log('WebSocket connection established with user', userId);
   }
 
   handleDisconnect(client: Socket) {
@@ -64,7 +65,7 @@ export class MessageGateway
       : userIdQueryParam;
 
     if (!userId) {
-      console.error('No userId found in handshake query');
+      logger.error('No userId found in handshake query');
       return;
     }
 
@@ -74,12 +75,12 @@ export class MessageGateway
       this.webSocketClientsMap.delete(userId);
     }
 
-    console.log('WebSocket connection removed for user', userId);
+    logger.log('WebSocket connection removed for user', userId);
   }
 
   async sendMessageToRabbitMQ(messageData: Partial<MessageEntity>) {
     try {
-      console.log(
+      logger.log(
         `Sending message to RabbitMQ queue '${RABBITMQ_MESSAGE_QUEUE}':`,
         messageData,
       );
@@ -93,7 +94,7 @@ export class MessageGateway
           });
       });
     } catch (error: unknown) {
-      console.error(
+      logger.error(
         'Error sending message to RabbitMQ:',
         error instanceof Error ? error.message : 'Unknown error',
       );
@@ -111,7 +112,7 @@ export class MessageGateway
         error: error instanceof Error ? error.message : 'Unknown error',
       });
 
-      console.error(
+      logger.error(
         'Error in sending WebSocket message:',
         error instanceof Error ? error.message : 'Unknown error',
       );
@@ -124,8 +125,8 @@ export class MessageGateway
     try {
       // throw new Error('Fake error');
 
-      console.log(
-        `Message received: ${messageData.content} from ${messageData.senderId}.
+      logger.log(
+        `Message received from ${messageData.senderId}.
         ${JSON.stringify(messageData)}`,
       );
 
@@ -149,7 +150,7 @@ export class MessageGateway
         message.conversation.id,
       );
 
-      console.log(
+      logger.log(
         'Participants in this conversation',
         JSON.stringify(participants),
       );
@@ -174,6 +175,8 @@ export class MessageGateway
       });
 
       if (hasDeliveredMessage) {
+        logger.log('Message has been delivered');
+
         await this.messageService.updateMessageStatus(
           message.id,
           MessageStatus.DELIVERED,
@@ -209,7 +212,7 @@ export class MessageGateway
         });
       });
 
-      console.error(
+      logger.error(
         'Error in sending WebSocket message:',
         error instanceof Error ? error.message : 'Unknown error',
       );
@@ -226,9 +229,9 @@ export class MessageGateway
     },
   ) {
     try {
-      console.log(
-        `Message status update received: ${messageDataObj.message.content} from ${messageDataObj.message.senderId}.
-        ${JSON.stringify(messageDataObj)}`,
+      logger.log(
+        `Message status update received from ${messageDataObj.message.senderId}`,
+        messageDataObj,
       );
 
       await this.messageService.updateMessageStatus(
@@ -254,7 +257,7 @@ export class MessageGateway
         },
       );
     } catch (error: unknown) {
-      console.error(
+      logger.error(
         'Error saving message status update:',
         error instanceof Error ? error.message : 'Unknown error',
       );
@@ -265,6 +268,6 @@ export class MessageGateway
   //   @SubscribeMessage('joinRoom')
   //   handleJoinRoom(client: Socket, room: string) {
   //     client.join(room);
-  //     console.log(`Client ${client.id} joined room: ${room}`);
+  //     logger.log(`Client ${client.id} joined room: ${room}`);
   //   }
 }

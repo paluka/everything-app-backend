@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { ConversationEntity } from './conversation.entity';
 import { MessageEntity } from 'src/message/message.entity';
 import { ParticipantEntity } from 'src/participant/participant.entity';
-import { CreateConversationDto } from './conversation.dto';
 import { UserEntity } from 'src/user/user.entity';
 import logger from 'src/utils/logger';
 
@@ -21,50 +20,57 @@ export class ConversationService {
 
   // Example methods for CRUD operations
   async createConversation(
-    createConversationDto: CreateConversationDto,
+    newConversation: ConversationEntity,
   ): Promise<ConversationEntity> {
-    logger.log('Here is my create conversation dto', {
-      createConversationDto,
-    });
-    const conversation = this.conversationRepository.create({});
-    // return this.conversationRepository.save(conversation);
-
-    await this.conversationRepository.save(conversation);
-
-    logger.log('Saved the new conversation');
-
-    const participants = createConversationDto.participants.map(
-      (participantData) => {
-        const participant = this.participantRepository.create({
-          user: { id: participantData.userId } as UserEntity,
-          conversation: { id: conversation.id } as ConversationEntity,
-        });
-        return participant;
-      },
-    );
-    await this.participantRepository.save(participants);
-
-    let message = null;
-
-    if (createConversationDto.messages.length) {
-      message = this.messageRepository.create({
-        content: createConversationDto.messages[0].content,
-        sender: { id: createConversationDto.messages[0].senderId },
-        conversation: { id: conversation.id },
+    try {
+      logger.log('Creating a new conversation', {
+        newConversation,
       });
-      await this.messageRepository.save(message);
+      const conversation = this.conversationRepository.create({});
+      // return this.conversationRepository.save(conversation);
+
+      await this.conversationRepository.save(conversation);
+
+      logger.log('Saved the new conversation');
+
+      const participants = newConversation.participants.map(
+        (participantData) => {
+          const participant = this.participantRepository.create({
+            user: { id: participantData.userId } as UserEntity,
+            conversation: { id: conversation.id } as ConversationEntity,
+          });
+          return participant;
+        },
+      );
+      await this.participantRepository.save(participants);
+
+      let message = null;
+
+      if (newConversation.messages.length) {
+        message = this.messageRepository.create({
+          encryptedContentForSender:
+            newConversation.messages[0].encryptedContentForSender,
+          encryptedContentForReceiver:
+            newConversation.messages[0].encryptedContentForReceiver,
+          sender: { id: newConversation.messages[0].senderId },
+          conversation: { id: conversation.id },
+        });
+        await this.messageRepository.save(message);
+      }
+
+      const fullParticipantsData = await this.participantRepository.find({
+        where: { conversation: { id: conversation.id } },
+        relations: ['user'],
+      });
+
+      return {
+        ...conversation,
+        participants: fullParticipantsData,
+        messages: message ? [message] : [],
+      };
+    } catch (error: unknown) {
+      logger.error('Error creating a new conversation', error);
     }
-
-    const fullParticipantsData = await this.participantRepository.find({
-      where: { conversation: { id: conversation.id } },
-      relations: ['user'],
-    });
-
-    return {
-      ...conversation,
-      participants: fullParticipantsData,
-      messages: message ? [message] : [],
-    };
   }
 
   async findAll(): Promise<ConversationEntity[]> {

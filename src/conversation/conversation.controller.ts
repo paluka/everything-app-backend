@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { ConversationService } from './conversation.service';
 import { ConversationEntity } from './conversation.entity';
-import { CreateConversationDto } from './conversation.dto';
 
 @Controller('conversations')
 export class ConversationController {
@@ -9,9 +8,9 @@ export class ConversationController {
 
   @Post()
   async createConversation(
-    @Body() createConversationDto: CreateConversationDto,
+    @Body() newConversation: ConversationEntity,
   ): Promise<ConversationEntity> {
-    return this.conversationService.createConversation(createConversationDto);
+    return this.conversationService.createConversation(newConversation);
   }
 
   @Get()

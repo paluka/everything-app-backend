@@ -41,7 +41,10 @@ export class MessageEntity {
   senderId: string;
 
   @Column()
-  content: string;
+  encryptedContentForSender: string;
+
+  @Column()
+  encryptedContentForReceiver: string;
 
   @Column({
     type: 'enum',
