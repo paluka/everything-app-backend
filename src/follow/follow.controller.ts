@@ -1,17 +1,22 @@
 // src/follow/follow.controller.ts
-import { Controller, Post, Delete, Param, Get } from '@nestjs/common';
+import { Controller, Post, Delete, Param, Get, Body } from '@nestjs/common';
 import { FollowService } from './follow.service';
+import logger from 'src/utils/logger';
 
 @Controller('follow')
 export class FollowController {
   constructor(private readonly followService: FollowService) {}
 
-  @Post(':followerId/:followingId')
+  @Post()
   async followUser(
-    @Param('followerId') followerId: string,
-    @Param('followingId') followingId: string,
+    @Body() followData: { followerId: string; followingId: string },
   ) {
-    return this.followService.followUser(followerId, followingId);
+    logger.log(`Follow user data in controller:`, followData);
+
+    return this.followService.followUser(
+      followData.followerId,
+      followData.followingId,
+    );
   }
 
   @Delete(':followerId/:followingId')

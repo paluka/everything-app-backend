@@ -53,4 +53,10 @@ export class UserEntity {
   // Following (users this user is following)
   @OneToMany(() => FollowEntity, (follow) => follow.follower)
   following: FollowEntity[];
+
+  @Column({ type: 'int', default: 0 })
+  followerCount: number;
+
+  @Column({ type: 'int', default: 0 })
+  followingCount: number;
 }

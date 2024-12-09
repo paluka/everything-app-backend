@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 
 import { UserEntity } from './user.entity';
 import { PostEntity } from '../post/post.entity';
+import logger from 'src/utils/logger';
 
 @Injectable()
 export class UserService {
@@ -69,8 +70,8 @@ export class UserService {
       );
       console.log('RETURNING NON-CACHED ALL USERS');
       return users;
-    } catch (e) {
-      console.log('ERROR IN USER SERVICE FINDING ALL USERS', e);
+    } catch (error: unknown) {
+      logger.error('ERROR IN USER SERVICE FINDING ALL USERS', error);
     }
 
     // console.log('findAll');
@@ -85,21 +86,28 @@ export class UserService {
   }
 
   async findOne(id: string): Promise<UserEntity> {
-    console.log('FINDING ONE USER', id);
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: ['posts', 'followers', 'following'],
-    });
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+    try {
+      logger.log('FINDING ONE USER', id);
+      const user = await this.userRepository.findOne({
+        where: { id },
+        relations: ['posts', 'followers.follower', 'following.following'],
+      });
+
+      if (!user) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+
+      user.posts.sort((a, b) => {
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      });
+
+      logger.log(`FOUND USER with id ${id}`);
+      return user;
+    } catch (error: unknown) {
+      logger.error(`Error in user service in findOne():`, error);
     }
-
-    user.posts.sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
-    console.log('FOUND USER:', user);
-    return user;
   }
 
   async updateUser(
