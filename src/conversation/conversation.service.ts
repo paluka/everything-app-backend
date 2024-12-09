@@ -6,6 +6,7 @@ import { MessageEntity } from 'src/message/message.entity';
 import { ParticipantEntity } from 'src/participant/participant.entity';
 import { CreateConversationDto } from './conversation.dto';
 import { UserEntity } from 'src/user/user.entity';
+import logger from 'src/utils/logger';
 
 @Injectable()
 export class ConversationService {
@@ -22,17 +23,16 @@ export class ConversationService {
   async createConversation(
     createConversationDto: CreateConversationDto,
   ): Promise<ConversationEntity> {
-    console.log('Here is my create conversation dto', {
+    logger.log('Here is my create conversation dto', {
       createConversationDto,
     });
     const conversation = this.conversationRepository.create({});
     // return this.conversationRepository.save(conversation);
 
-    // Step 2: Save the conversation
     await this.conversationRepository.save(conversation);
 
-    console.log('Saved the new conversation');
-    // Step 3: Add participants to the conversation
+    logger.log('Saved the new conversation');
+
     const participants = createConversationDto.participants.map(
       (participantData) => {
         const participant = this.participantRepository.create({
@@ -44,7 +44,6 @@ export class ConversationService {
     );
     await this.participantRepository.save(participants);
 
-    // Step 4: Add the first message to the conversation
     let message = null;
 
     if (createConversationDto.messages.length) {
@@ -56,10 +55,14 @@ export class ConversationService {
       await this.messageRepository.save(message);
     }
 
-    // Step 5: Return the created conversation (you can include participants and messages if needed)
+    const fullParticipantsData = await this.participantRepository.find({
+      where: { conversation: { id: conversation.id } },
+      relations: ['user'],
+    });
+
     return {
       ...conversation,
-      participants,
+      participants: fullParticipantsData,
       messages: message ? [message] : [],
     };
   }
@@ -71,7 +74,7 @@ export class ConversationService {
   async getAllConversationsByUser(
     userId: string,
   ): Promise<ConversationEntity[]> {
-    console.log('getAllConversationsByUser', userId);
+    logger.log('getAllConversationsByUser', userId);
     // const conversations = await this.conversationRepository.find({
     //   relations: ['participants', 'participants.user'],
     //   where: {
@@ -135,7 +138,7 @@ export class ConversationService {
       .orderBy('messages.createdAt', 'ASC') // Optional: order messages by date
       .getMany();
 
-    console.log(JSON.stringify(conversations, null, 2)); // Debug log
+    logger.log(JSON.stringify(conversations, null, 2)); // Debug log
     return conversations;
   }
 
